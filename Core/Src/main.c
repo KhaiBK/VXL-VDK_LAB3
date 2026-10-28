@@ -22,12 +22,18 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "input_reading.h"
+#include "input_processing.h"
+#include "led_display.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef enum
+{
+    BUTTON_RELEASED,
+    BUTTON_PRESSED
+} ButtonFSMState;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -55,6 +61,8 @@ TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
 static volatile uint32_t elapsedMs = 0U;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -144,7 +152,11 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+	  // Process button MODE FSM
+	     fsm_for_input_processing();
 
+	     // Display current mode
+	     led_display_mode(get_current_mode());
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -281,10 +293,15 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM2)
     {
+    	button_reading();
+
         // Accumulate elapsed time
         elapsedMs += TIMER_INTERRUPT_MS;
 
