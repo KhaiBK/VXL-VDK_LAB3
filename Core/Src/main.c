@@ -32,6 +32,17 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+// Timer interrupt period (ms)
+#define TIMER_INTERRUPT_MS 10U
+
+// LED blinking period: 500ms = 2Hz
+#define LED_BLINK_PERIOD_MS 500U
+
+// LED ON duration
+#define LED_ON_MS 250U
+
+// TIM2 Clock = 8MHz, Prescaler = 799
+#define TIM2_TICKS_PER_MS 10U
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -43,7 +54,7 @@
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-
+static volatile uint32_t elapsedMs = 0U;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -90,9 +101,42 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+  // Turn off all 7-segment displays
+  HAL_GPIO_WritePin(GPIOB,
+                    EN0_Pin | EN1_Pin | EN2_Pin | EN3_Pin,
+                    GPIO_PIN_SET);
 
-  HAL_TIM_Base_Start_IT(&htim2);
+  // Turn off all segments (Common Anode)
+  HAL_GPIO_WritePin(GPIOB,
+                    SEGMENT_A_Pin | SEGMENT_B_Pin |
+                    SEGMENT_C_Pin | SEGMENT_D_Pin |
+                    SEGMENT_E_Pin | SEGMENT_F_Pin |
+                    SEGMENT_G_Pin,
+                    GPIO_PIN_SET);
+
+  // Initial LED state: ON
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+
+  // Reset elapsed time
+  elapsedMs = 0U;
+
+  // Configure TIM2 ARR
+  __HAL_TIM_SET_AUTORELOAD(
+      &htim2,
+      TIMER_INTERRUPT_MS * TIM2_TICKS_PER_MS - 1U
+  );
+
+  // Reset TIM2 counter
+  __HAL_TIM_SET_COUNTER(&htim2, 0U);
+
+  // Clear pending interrupt flag
+  __HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_UPDATE);
+
+  // Start TIM2 interrupt
+  if (HAL_TIM_Base_Start_IT(&htim2) != HAL_OK)
+  {
+      Error_Handler();
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -160,9 +204,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 7999;
+  htim2.Init.Prescaler = 799;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 9;
+  htim2.Init.Period = 99;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -237,27 +281,39 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-/* USER CODE BEGIN 4 */
-
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM2)
     {
-        static uint8_t counter = 0;
+        // Accumulate elapsed time
+        elapsedMs += TIMER_INTERRUPT_MS;
 
-        counter++;
-
-        if (counter >= 25)
+        // Keep the blinking period at 500 ms
+        if (elapsedMs >= LED_BLINK_PERIOD_MS)
         {
-            counter = 0;
+            elapsedMs -= LED_BLINK_PERIOD_MS;
+        }
 
-            HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+        // Control LED according to elapsed time
+        if (elapsedMs < LED_ON_MS)
+        {
+            HAL_GPIO_WritePin(
+                GPIOA,
+                GPIO_PIN_5,
+                GPIO_PIN_SET
+            );
+        }
+        else
+        {
+            HAL_GPIO_WritePin(
+                GPIOA,
+                GPIO_PIN_5,
+                GPIO_PIN_RESET
+            );
         }
     }
 }
 
-/* USER CODE END 4 */
 /* USER CODE END 4 */
 
 /**
