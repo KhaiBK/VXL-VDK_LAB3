@@ -168,6 +168,12 @@ int main(void)
 	      displayValue = get_red_editing();
 	  }
 
+	  // MODE 3: Display yellow duration
+	  else if (mode == 3U)
+	  {
+	      displayValue = get_yellow_editing();
+	  }
+
 	  // Scan 4 seven-segment displays
 	  sevenseg_scan_test(mode, displayValue);
 
@@ -175,7 +181,12 @@ int main(void)
 	  uint8_t blinkOn = (elapsedMs < LED_ON_MS) ? 1U : 0U;
 
 	  // Update traffic lights
-	  traffic_light_update(mode, blinkOn, get_red_duration());
+	  traffic_light_update(
+	      mode,
+	      blinkOn,
+	      get_red_duration(),
+	      get_yellow_duration()
+	  );
 
 
 	  __WFI();

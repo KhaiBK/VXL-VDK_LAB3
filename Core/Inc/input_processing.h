@@ -11,4 +11,9 @@ uint8_t get_red_duration(void);
 
 uint8_t get_red_editing(void);
 
+uint8_t get_yellow_duration(void);
+
+uint8_t get_yellow_editing(void);
+
+
 #endif /* INC_INPUT_PROCESSING_H_ */

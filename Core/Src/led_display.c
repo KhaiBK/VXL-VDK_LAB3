@@ -181,7 +181,8 @@ void sevenseg_scan_test(uint8_t mode, uint8_t value)
 
 void traffic_light_update(uint8_t mode,
                           uint8_t blinkOn,
-                          uint8_t redDurationSec)
+                          uint8_t redDurationSec,
+                          uint8_t yellowDurationSec)
 {
     static uint8_t previousMode = 0U;
 
@@ -210,50 +211,53 @@ void traffic_light_update(uint8_t mode,
 
     // MODE 1: Normal traffic light
     if (mode == 1U)
+    {uint32_t stateDuration;
+
+    uint32_t redTotalMs =
+        (uint32_t)redDurationSec * 1000U;
+
+    uint32_t yellowMs =
+        (uint32_t)yellowDurationSec * 1000U;
+
+    uint32_t road2GreenMs;
+    uint32_t road2YellowMs;
+
+    // Keep both green and yellow phases positive.
+    // If yellow >= red, use a temporary fallback.
+    if (redTotalMs > yellowMs)
     {
-    	uint32_t stateDuration;
+        road2YellowMs = yellowMs;
+        road2GreenMs = redTotalMs - yellowMs;
+    }
+    else
+    {
+        road2YellowMs = redTotalMs / 2U;
+        road2GreenMs = redTotalMs - road2YellowMs;
+    }
 
-    	// Total red duration of Road 1
-    	uint32_t redTotalMs = (uint32_t)redDurationSec * 1000U;
+    // Determine duration for each state
+    switch (trafficState)
+    {
+        case ROAD1_GREEN_ROAD2_RED:
+            stateDuration = TRAFFIC_GREEN_MS;
+            break;
 
-    	// Determine Road 2 yellow and green durations
-    	uint32_t road2YellowMs;
-    	uint32_t road2GreenMs;
+        case ROAD1_YELLOW_ROAD2_RED:
+            stateDuration = yellowMs;
+            break;
 
-    	if (redTotalMs > TRAFFIC_YELLOW_MS)
-    	{
-    	    road2YellowMs = TRAFFIC_YELLOW_MS;
-    	}
-    	else
-    	{
-    	    road2YellowMs = redTotalMs / 2U;
-    	}
+        case ROAD1_RED_ROAD2_GREEN:
+            stateDuration = road2GreenMs;
+            break;
 
-    	road2GreenMs = redTotalMs - road2YellowMs;
+        case ROAD1_RED_ROAD2_YELLOW:
+            stateDuration = road2YellowMs;
+            break;
 
-    	// Select duration for each traffic state
-    	switch (trafficState)
-    	{
-    	    case ROAD1_GREEN_ROAD2_RED:
-    	        stateDuration = TRAFFIC_GREEN_MS;
-    	        break;
-
-    	    case ROAD1_YELLOW_ROAD2_RED:
-    	        stateDuration = TRAFFIC_YELLOW_MS;
-    	        break;
-
-    	    case ROAD1_RED_ROAD2_GREEN:
-    	        stateDuration = road2GreenMs;
-    	        break;
-
-    	    case ROAD1_RED_ROAD2_YELLOW:
-    	        stateDuration = road2YellowMs;
-    	        break;
-
-    	    default:
-    	        stateDuration = TRAFFIC_GREEN_MS;
-    	        break;
-    	}
+        default:
+            stateDuration = TRAFFIC_GREEN_MS;
+            break;
+    }
 
         // Check whether current state has finished
         if ((uint32_t)(now - stateStartMs) >= stateDuration)

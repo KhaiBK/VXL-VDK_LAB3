@@ -19,6 +19,12 @@ static uint8_t redDurationSec = 7U;
 // Red light duration being edited
 static uint8_t redEditingSec = 7U;
 
+// Yellow light duration (seconds)
+static uint8_t yellowDurationSec = 2U;
+
+// Yellow light duration being edited
+static uint8_t yellowEditingSec = 2U;
+
 // Track button states for edge detection
 static uint8_t incWasPressed = 0U;
 static uint8_t setWasPressed = 0U;
@@ -46,6 +52,12 @@ void fsm_for_input_processing(void)
                 if (currentMode == 2U)
                 {
                     redEditingSec = redDurationSec;
+                }
+
+                // Enter MODE 3
+                else if (currentMode == 3U)
+                {
+                    yellowEditingSec = yellowDurationSec;
                 }
 
                 buttonState = BUTTON_PRESSED;
@@ -81,24 +93,47 @@ void fsm_for_input_processing(void)
     // 3. MODIFY RED DURATION - MODE 2
     // ===================================
 
+    // ===================================
+    // MODIFY RED DURATION - MODE 2
+    // ===================================
     if (currentMode == 2U)
     {
-        // INC: Increase editing value
         if (incPressed && !incWasPressed)
         {
             redEditingSec++;
 
-            // Valid range: 1 - 99 seconds
             if (redEditingSec > 99U)
             {
                 redEditingSec = 1U;
             }
         }
 
-        // SET: Save editing value
         if (setPressed && !setWasPressed)
         {
             redDurationSec = redEditingSec;
+        }
+    }
+
+    // ===================================
+    // MODIFY YELLOW DURATION - MODE 3
+    // ===================================
+    else if (currentMode == 3U)
+    {
+        // INC: Increase yellow duration
+        if (incPressed && !incWasPressed)
+        {
+            yellowEditingSec++;
+
+            if (yellowEditingSec > 99U)
+            {
+                yellowEditingSec = 1U;
+            }
+        }
+
+        // SET: Save yellow duration
+        if (setPressed && !setWasPressed)
+        {
+            yellowDurationSec = yellowEditingSec;
         }
     }
 
@@ -123,4 +158,14 @@ uint8_t get_red_duration(void)
 uint8_t get_red_editing(void)
 {
     return redEditingSec;
+}
+
+uint8_t get_yellow_duration(void)
+{
+    return yellowDurationSec;
+}
+
+uint8_t get_yellow_editing(void)
+{
+    return yellowEditingSec;
 }

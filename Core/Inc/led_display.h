@@ -21,6 +21,7 @@ void sevenseg_test(void);
 void sevenseg_scan_test(uint8_t mode, uint8_t value);
 void traffic_light_update(uint8_t mode,
                           uint8_t blinkOn,
-                          uint8_t redDurationSec);
+                          uint8_t redDurationSec,
+                          uint8_t yellowDurationSec);
 
 #endif /* INC_LED_DISPLAY_H_ */
