@@ -74,7 +74,7 @@ void sevenseg_test(void)
     );
 }
 
-void sevenseg_scan_test(uint8_t mode)
+void sevenseg_scan_test(uint8_t mode, uint8_t value)
 {
     static uint32_t lastScanMs = 0U;
     static uint8_t digitIndex = 0U;
@@ -118,8 +118,8 @@ void sevenseg_scan_test(uint8_t mode)
     {
         mode / 10U,
         mode % 10U,
-        0U,
-        0U
+        value / 10U,
+        value % 10U
     };
 
     uint32_t now = HAL_GetTick();
@@ -179,7 +179,9 @@ void sevenseg_scan_test(uint8_t mode)
     }
 }
 
-void traffic_light_update(uint8_t mode, uint8_t blinkOn)
+void traffic_light_update(uint8_t mode,
+                          uint8_t blinkOn,
+                          uint8_t redDurationSec)
 {
     static uint8_t previousMode = 0U;
 
@@ -209,18 +211,49 @@ void traffic_light_update(uint8_t mode, uint8_t blinkOn)
     // MODE 1: Normal traffic light
     if (mode == 1U)
     {
-        uint32_t stateDuration;
+    	uint32_t stateDuration;
 
-        // Determine current state duration
-        if (trafficState == ROAD1_YELLOW_ROAD2_RED ||
-            trafficState == ROAD1_RED_ROAD2_YELLOW)
-        {
-            stateDuration = TRAFFIC_YELLOW_MS;
-        }
-        else
-        {
-            stateDuration = TRAFFIC_GREEN_MS;
-        }
+    	// Total red duration of Road 1
+    	uint32_t redTotalMs = (uint32_t)redDurationSec * 1000U;
+
+    	// Determine Road 2 yellow and green durations
+    	uint32_t road2YellowMs;
+    	uint32_t road2GreenMs;
+
+    	if (redTotalMs > TRAFFIC_YELLOW_MS)
+    	{
+    	    road2YellowMs = TRAFFIC_YELLOW_MS;
+    	}
+    	else
+    	{
+    	    road2YellowMs = redTotalMs / 2U;
+    	}
+
+    	road2GreenMs = redTotalMs - road2YellowMs;
+
+    	// Select duration for each traffic state
+    	switch (trafficState)
+    	{
+    	    case ROAD1_GREEN_ROAD2_RED:
+    	        stateDuration = TRAFFIC_GREEN_MS;
+    	        break;
+
+    	    case ROAD1_YELLOW_ROAD2_RED:
+    	        stateDuration = TRAFFIC_YELLOW_MS;
+    	        break;
+
+    	    case ROAD1_RED_ROAD2_GREEN:
+    	        stateDuration = road2GreenMs;
+    	        break;
+
+    	    case ROAD1_RED_ROAD2_YELLOW:
+    	        stateDuration = road2YellowMs;
+    	        break;
+
+    	    default:
+    	        stateDuration = TRAFFIC_GREEN_MS;
+    	        break;
+    	}
 
         // Check whether current state has finished
         if ((uint32_t)(now - stateStartMs) >= stateDuration)

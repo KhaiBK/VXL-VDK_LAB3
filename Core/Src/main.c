@@ -154,19 +154,31 @@ int main(void)
     /* USER CODE END WHILE */
 
 	  // Process Button MODE
-	      fsm_for_input_processing();
+	  fsm_for_input_processing();
 
-	      // Get current mode
-	      uint8_t mode = get_current_mode();
+	  // Get current mode
+	  uint8_t mode = get_current_mode();
 
-	      // Display MODE on 7-segment LEDs
-	      sevenseg_scan_test(mode);
+	  // Value displayed on 7-segment LEDs
+	  uint8_t displayValue = 0U;
 
-	      // Determine blinking phase
-	      uint8_t blinkOn = (elapsedMs < LED_ON_MS) ? 1U : 0U;
+	  // MODE 2: Display red light editing duration
+	  if (mode == 2U)
+	  {
+	      displayValue = get_red_editing();
+	  }
 
-	      // Control traffic lights
-	      traffic_light_update(mode, blinkOn);
+	  // Scan 4 seven-segment displays
+	  sevenseg_scan_test(mode, displayValue);
+
+	  // Determine blinking phase
+	  uint8_t blinkOn = (elapsedMs < LED_ON_MS) ? 1U : 0U;
+
+	  // Update traffic lights
+	  traffic_light_update(mode, blinkOn, get_red_duration());
+
+
+	  __WFI();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
