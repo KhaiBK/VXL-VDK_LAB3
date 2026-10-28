@@ -122,8 +122,6 @@ int main(void)
                     SEGMENT_G_Pin,
                     GPIO_PIN_SET);
 
-  // Initial LED state: ON
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
 
   // Reset elapsed time
   elapsedMs = 0U;
@@ -145,6 +143,8 @@ int main(void)
   {
       Error_Handler();
   }
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -152,11 +152,21 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  // Process button MODE FSM
-	     fsm_for_input_processing();
 
-	     // Display current mode
-	     led_display_mode(get_current_mode());
+	  // Process Button MODE
+	      fsm_for_input_processing();
+
+	      // Get current mode
+	      uint8_t mode = get_current_mode();
+
+	      // Display MODE on 7-segment LEDs
+	      sevenseg_scan_test(mode);
+
+	      // Determine blinking phase
+	      uint8_t blinkOn = (elapsedMs < LED_ON_MS) ? 1U : 0U;
+
+	      // Control traffic lights
+	      traffic_light_update(mode, blinkOn);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -300,33 +310,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM2)
     {
-    	button_reading();
+        // Read and debounce buttons
+        button_reading();
 
         // Accumulate elapsed time
         elapsedMs += TIMER_INTERRUPT_MS;
 
-        // Keep the blinking period at 500 ms
+        // Reset after 500 ms
         if (elapsedMs >= LED_BLINK_PERIOD_MS)
         {
             elapsedMs -= LED_BLINK_PERIOD_MS;
-        }
-
-        // Control LED according to elapsed time
-        if (elapsedMs < LED_ON_MS)
-        {
-            HAL_GPIO_WritePin(
-                GPIOA,
-                GPIO_PIN_5,
-                GPIO_PIN_SET
-            );
-        }
-        else
-        {
-            HAL_GPIO_WritePin(
-                GPIOA,
-                GPIO_PIN_5,
-                GPIO_PIN_RESET
-            );
         }
     }
 }
