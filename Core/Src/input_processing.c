@@ -25,6 +25,10 @@ static uint8_t yellowDurationSec = 2U;
 // Yellow light duration being edited
 static uint8_t yellowEditingSec = 2U;
 
+// EX9 - Green light duration
+static uint8_t greenDurationSec = 5U;
+static uint8_t greenEditingSec = 5U;
+
 // Track button states for edge detection
 static uint8_t incWasPressed = 0U;
 static uint8_t setWasPressed = 0U;
@@ -58,6 +62,10 @@ void fsm_for_input_processing(void)
                 else if (currentMode == 3U)
                 {
                     yellowEditingSec = yellowDurationSec;
+                }
+                else if (currentMode == 4U)
+                {
+                    greenEditingSec = greenDurationSec;
                 }
 
                 buttonState = BUTTON_PRESSED;
@@ -138,6 +146,29 @@ void fsm_for_input_processing(void)
     }
 
     // ===================================
+    // EX9 - MODIFY GREEN DURATION
+    // ===================================
+    else if (currentMode == 4U)
+    {
+        // Button INC: Increase green duration
+        if (incPressed && !incWasPressed)
+        {
+            greenEditingSec++;
+
+            if (greenEditingSec > 99U)
+            {
+                greenEditingSec = 1U;
+            }
+        }
+
+        // Button SET: Save green duration
+        if (setPressed && !setWasPressed)
+        {
+            greenDurationSec = greenEditingSec;
+        }
+    }
+
+    // ===================================
     // 4. SAVE BUTTON STATES
     // ===================================
 
@@ -168,4 +199,14 @@ uint8_t get_yellow_duration(void)
 uint8_t get_yellow_editing(void)
 {
     return yellowEditingSec;
+}
+
+uint8_t get_green_duration(void)
+{
+    return greenDurationSec;
+}
+
+uint8_t get_green_editing(void)
+{
+    return greenEditingSec;
 }

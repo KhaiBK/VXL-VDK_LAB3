@@ -174,6 +174,12 @@ int main(void)
 	      displayValue = get_yellow_editing();
 	  }
 
+	  // MODE 4: Green duration
+	  else if (mode == 4U)
+	  {
+	      displayValue = get_green_editing();
+	  }
+
 	  // Scan 4 seven-segment displays
 	  sevenseg_scan_test(mode, displayValue);
 
