@@ -29,9 +29,46 @@ static uint8_t yellowEditingSec = 2U;
 static uint8_t greenDurationSec = 5U;
 static uint8_t greenEditingSec = 5U;
 
+// Durations actually used in MODE 1
+static uint8_t activeRedSec = 7U;
+static uint8_t activeYellowSec = 2U;
+static uint8_t activeGreenSec = 5U;
+
 // Track button states for edge detection
 static uint8_t incWasPressed = 0U;
 static uint8_t setWasPressed = 0U;
+
+
+static void validate_traffic_durations(void)
+{
+    uint16_t red = redDurationSec;
+    uint16_t yellow = yellowDurationSec;
+    uint16_t green = greenDurationSec;
+
+    uint16_t sum = green + yellow;
+
+    // Case 1: Red > Green + Yellow
+    if (red > sum)
+    {
+        green = red - yellow;
+    }
+
+    // Case 2: Red < Green + Yellow
+    else if (red < sum)
+    {
+        red = sum;
+    }
+
+    // Apply only valid durations
+    if (red >= 1U && red <= 99U &&
+        yellow >= 1U && yellow <= 99U &&
+        green >= 1U && green <= 99U)
+    {
+        activeRedSec = (uint8_t)red;
+        activeYellowSec = (uint8_t)yellow;
+        activeGreenSec = (uint8_t)green;
+    }
+}
 
 void fsm_for_input_processing(void)
 {
@@ -45,12 +82,16 @@ void fsm_for_input_processing(void)
 
             if (is_button_pressed(BUTTON_MODE_INDEX))
             {
-                currentMode++;
+            	currentMode++;
 
-                if (currentMode > 4U)
-                {
-                    currentMode = 1U;
-                }
+            	if (currentMode > 4U)
+            	{
+            	    // Return to Normal Mode
+            	    currentMode = 1U;
+
+            	    // Validate configuration before applying
+            	    validate_traffic_durations();
+            	}
 
                 // Enter MODE 2
                 if (currentMode == 2U)
@@ -209,4 +250,19 @@ uint8_t get_green_duration(void)
 uint8_t get_green_editing(void)
 {
     return greenEditingSec;
+}
+
+uint8_t get_active_red_duration(void)
+{
+    return activeRedSec;
+}
+
+uint8_t get_active_yellow_duration(void)
+{
+    return activeYellowSec;
+}
+
+uint8_t get_active_green_duration(void)
+{
+    return activeGreenSec;
 }

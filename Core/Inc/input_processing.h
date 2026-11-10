@@ -19,5 +19,7 @@ uint8_t get_green_duration(void);
 
 uint8_t get_green_editing(void);
 
-
+uint8_t get_active_red_duration(void);
+uint8_t get_active_yellow_duration(void);
+uint8_t get_active_green_duration(void);
 #endif /* INC_INPUT_PROCESSING_H_ */

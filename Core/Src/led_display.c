@@ -1,6 +1,10 @@
 #include "main.h"
 #include "led_display.h"
 
+// Remaining time for each road
+static uint8_t road1RemainingSec = 0U;
+static uint8_t road2RemainingSec = 0U;
+
 void led_display_mode(uint8_t mode)
 {
     // LED GREEN - PA7
@@ -179,10 +183,67 @@ void sevenseg_scan_test(uint8_t mode, uint8_t value)
     }
 }
 
+static void update_traffic_countdown(
+    TrafficState state,
+    uint32_t elapsedMs,
+    uint32_t green1Ms,
+    uint32_t yellow1Ms,
+    uint32_t green2Ms,
+    uint32_t yellow2Ms)
+{
+    uint32_t road1Ms = 0U;
+    uint32_t road2Ms = 0U;
+
+    switch (state)
+    {
+        case ROAD1_GREEN_ROAD2_RED:
+
+            road1Ms = green1Ms;
+            road2Ms = green1Ms + yellow1Ms;
+            break;
+
+        case ROAD1_YELLOW_ROAD2_RED:
+
+            road1Ms = yellow1Ms;
+            road2Ms = yellow1Ms;
+            break;
+
+        case ROAD1_RED_ROAD2_GREEN:
+
+            road1Ms = green2Ms + yellow2Ms;
+            road2Ms = green2Ms;
+            break;
+
+        case ROAD1_RED_ROAD2_YELLOW:
+
+            road1Ms = yellow2Ms;
+            road2Ms = yellow2Ms;
+            break;
+
+        default:
+            break;
+    }
+
+    // Subtract elapsed time
+    road1Ms = (elapsedMs < road1Ms)
+              ? road1Ms - elapsedMs : 0U;
+
+    road2Ms = (elapsedMs < road2Ms)
+              ? road2Ms - elapsedMs : 0U;
+
+    // Convert milliseconds to seconds, rounding up
+    road1RemainingSec =
+        (uint8_t)((road1Ms + 999U) / 1000U);
+
+    road2RemainingSec =
+        (uint8_t)((road2Ms + 999U) / 1000U);
+}
+
 void traffic_light_update(uint8_t mode,
                           uint8_t blinkOn,
                           uint8_t redDurationSec,
-                          uint8_t yellowDurationSec)
+                          uint8_t yellowDurationSec,
+                          uint8_t greenDurationSec)
 {
     static uint8_t previousMode = 0U;
 
@@ -211,60 +272,45 @@ void traffic_light_update(uint8_t mode,
 
     // MODE 1: Normal traffic light
     if (mode == 1U)
-    {uint32_t stateDuration;
-
-    uint32_t redTotalMs =
-        (uint32_t)redDurationSec * 1000U;
-
-    uint32_t yellowMs =
-        (uint32_t)yellowDurationSec * 1000U;
-
-    uint32_t road2GreenMs;
-    uint32_t road2YellowMs;
-
-    // Keep both green and yellow phases positive.
-    // If yellow >= red, use a temporary fallback.
-    if (redTotalMs > yellowMs)
     {
-        road2YellowMs = yellowMs;
-        road2GreenMs = redTotalMs - yellowMs;
-    }
-    else
-    {
-        road2YellowMs = redTotalMs / 2U;
-        road2GreenMs = redTotalMs - road2YellowMs;
-    }
+        uint32_t greenMs =
+            (uint32_t)greenDurationSec * 1000U;
 
-    // Determine duration for each state
-    switch (trafficState)
-    {
-        case ROAD1_GREEN_ROAD2_RED:
-            stateDuration = TRAFFIC_GREEN_MS;
-            break;
+        uint32_t yellowMs =
+            (uint32_t)yellowDurationSec * 1000U;
 
-        case ROAD1_YELLOW_ROAD2_RED:
-            stateDuration = yellowMs;
-            break;
+        uint32_t stateDuration = 0U;
 
-        case ROAD1_RED_ROAD2_GREEN:
-            stateDuration = road2GreenMs;
-            break;
+        switch (trafficState)
+        {
+            case ROAD1_GREEN_ROAD2_RED:
+                stateDuration = greenMs;
+                break;
 
-        case ROAD1_RED_ROAD2_YELLOW:
-            stateDuration = road2YellowMs;
-            break;
+            case ROAD1_YELLOW_ROAD2_RED:
+                stateDuration = yellowMs;
+                break;
 
-        default:
-            stateDuration = TRAFFIC_GREEN_MS;
-            break;
-    }
+            case ROAD1_RED_ROAD2_GREEN:
+                stateDuration = greenMs;
+                break;
 
-        // Check whether current state has finished
+            case ROAD1_RED_ROAD2_YELLOW:
+                stateDuration = yellowMs;
+                break;
+
+            default:
+                trafficState = ROAD1_GREEN_ROAD2_RED;
+                stateDuration = greenMs;
+                stateStartMs = now;
+                break;
+        }
+
+        // Move to next traffic state
         if ((uint32_t)(now - stateStartMs) >= stateDuration)
         {
             stateStartMs += stateDuration;
 
-            // Move to next traffic state
             if (trafficState == ROAD1_RED_ROAD2_YELLOW)
             {
                 trafficState = ROAD1_GREEN_ROAD2_RED;
@@ -275,33 +321,43 @@ void traffic_light_update(uint8_t mode,
             }
         }
 
-        // Determine active LEDs
+        // Update countdown after changing state
+        uint32_t stateElapsedMs = now - stateStartMs;
+
+        update_traffic_countdown(
+            trafficState,
+            stateElapsedMs,
+            greenMs,
+            yellowMs,
+            greenMs,
+            yellowMs
+        );
+
+        // Determine active traffic LEDs
         switch (trafficState)
         {
             case ROAD1_GREEN_ROAD2_RED:
-
                 activePins = LED_GREEN_Pin | LED_RED1_Pin;
                 break;
 
             case ROAD1_YELLOW_ROAD2_RED:
-
                 activePins = LED_YELLOW_Pin | LED_RED1_Pin;
                 break;
 
             case ROAD1_RED_ROAD2_GREEN:
-
                 activePins = LED_RED_Pin | LED_GREEN1_Pin;
                 break;
 
             case ROAD1_RED_ROAD2_YELLOW:
-
                 activePins = LED_RED_Pin | LED_YELLOW1_Pin;
                 break;
 
             default:
+                activePins = 0U;
                 break;
         }
     }
+
 
     // MODE 2, 3, 4: Blink selected color
     else if (blinkOn == 1U)
@@ -348,4 +404,14 @@ void traffic_light_update(uint8_t mode,
 
         previousActivePins = activePins;
     }
+}
+
+uint8_t get_road1_remaining(void)
+{
+    return road1RemainingSec;
+}
+
+uint8_t get_road2_remaining(void)
+{
+    return road2RemainingSec;
 }

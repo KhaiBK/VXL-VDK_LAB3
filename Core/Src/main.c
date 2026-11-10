@@ -151,53 +151,61 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
+      // Process button FSM
+      fsm_for_input_processing();
 
-	  // Process Button MODE
-	  fsm_for_input_processing();
+      uint8_t mode = get_current_mode();
 
-	  // Get current mode
-	  uint8_t mode = get_current_mode();
+      // Calculate blink state
+      uint8_t blinkOn =
+          (elapsedMs < LED_ON_MS) ? 1U : 0U;
 
-	  // Value displayed on 7-segment LEDs
-	  uint8_t displayValue = 0U;
+      // Update traffic light FSM
+      traffic_light_update(
+          mode,
+          blinkOn,
+          get_active_red_duration(),
+          get_active_yellow_duration(),
+          get_active_green_duration()
+      );
 
-	  // MODE 2: Display red light editing duration
-	  if (mode == 2U)
-	  {
-	      displayValue = get_red_editing();
-	  }
+      // MODE 1: Display countdown for both roads
+      if (mode == 1U)
+      {
+          sevenseg_scan_test(
+              get_road1_remaining(),
+              get_road2_remaining()
+          );
+      }
+      else
+      {
+          uint8_t displayValue = 0U;
 
-	  // MODE 3: Display yellow duration
-	  else if (mode == 3U)
-	  {
-	      displayValue = get_yellow_editing();
-	  }
+          // MODE 2: Red duration
+          if (mode == 2U)
+          {
+              displayValue = get_red_editing();
+          }
 
-	  // MODE 4: Green duration
-	  else if (mode == 4U)
-	  {
-	      displayValue = get_green_editing();
-	  }
+          // MODE 3: Yellow duration
+          else if (mode == 3U)
+          {
+              displayValue = get_yellow_editing();
+          }
 
-	  // Scan 4 seven-segment displays
-	  sevenseg_scan_test(mode, displayValue);
+          // MODE 4: Green duration
+          else if (mode == 4U)
+          {
+              displayValue = get_green_editing();
+          }
 
-	  // Determine blinking phase
-	  uint8_t blinkOn = (elapsedMs < LED_ON_MS) ? 1U : 0U;
+          sevenseg_scan_test(mode, displayValue);
+      }
 
-	  // Update traffic lights
-	  traffic_light_update(
-	      mode,
-	      blinkOn,
-	      get_red_duration(),
-	      get_yellow_duration()
-	  );
-
-
-	  __WFI();
-    /* USER CODE BEGIN 3 */
+      __WFI();
   }
+    /* USER CODE BEGIN 3 */
+
   /* USER CODE END 3 */
 }
 
